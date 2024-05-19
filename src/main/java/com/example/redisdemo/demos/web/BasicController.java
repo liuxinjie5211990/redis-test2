@@ -188,7 +188,7 @@ map size 100, value is 3.1 MB
 
         now = LocalDateTime.now();*/
         for (int i=1;i<=30000;i++) {
-            redisCache.setCacheObject("cao"+i,compressString(content));
+            redisCache.setCacheObject("cao"+i,content);
         }
         now = LocalDateTime.now();
         System.out.println("结束时间: " + now.format(formatter));

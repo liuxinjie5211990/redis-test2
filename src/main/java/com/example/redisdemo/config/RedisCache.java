@@ -1,17 +1,16 @@
 package com.example.redisdemo.config;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.connection.ReturnType;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.stereotype.Component;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -270,6 +269,31 @@ public class RedisCache {
 
             return null;
         });
+    }
+
+    public synchronized void executePipelined(Map<String, Object> map) {
+        RedisSerializer keySerializer = redisTemplate.getKeySerializer();
+        RedisSerializer valueSerializer = redisTemplate.getValueSerializer();
+        redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
+            map.forEach((key, value) -> connection.set(keySerializer.serialize(key), valueSerializer.serialize(value)));
+            return null;
+        });
+    }
+
+    public synchronized Map<String, Object> executeGetPipelined(List<String> keys) {
+        RedisSerializer keySerializer = redisTemplate.getKeySerializer();
+        List<Object> objects = redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
+            for (String key : keys) {
+                if (StringUtils.isBlank(key)) {
+                    throw new RuntimeException("redis的key不能为空");
+                }
+                connection.get(keySerializer.serialize(key));
+            }
+            return null;
+        });
+        Map<String, Object> map = new HashMap<>();
+        keys.forEach(t -> map.put(t, objects.get(keys.indexOf(t))));
+        return map;
     }
 
 }
